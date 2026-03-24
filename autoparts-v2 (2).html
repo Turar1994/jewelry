@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoParts — Управление магазином</title>
+<meta name="theme-color" content="#0F1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://unpkg.com/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Manrope',sans-serif;background:#0F1117;color:#E2E8F0;font-size:14px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#2D3748;border-radius:4px}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;background:#161B27;border-right:1px solid #1E2A3A;display:flex;flex-direction:column;flex-shrink:0}
+.logo{padding:20px 16px 16px;border-bottom:1px solid #1E2A3A}
+.logo-tag{font-size:10px;font-weight:800;letter-spacing:.15em;color:#F97316;text-transform:uppercase}
+.logo-name{font-size:15px;font-weight:700;color:#F1F5F9;margin-top:2px}
+.logo-sync{font-size:10px;color:#64748B;margin-top:3px;display:flex;align-items:center;gap:5px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#EF4444;flex-shrink:0;transition:background .3s}
+.sync-dot.ok{background:#10B981}
+.nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.1em;padding:10px 12px 4px}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:#94A3B8;border:none;background:none;width:100%;text-align:left;font-family:inherit;transition:all .15s}
+.nav-btn:hover{background:#1E2A3A;color:#E2E8F0}
+.nav-btn.active{background:rgba(249,115,22,.12);color:#F97316}
+.nav-icon{width:18px;text-align:center;font-size:14px}
+.nav-badge{margin-left:auto;background:#EF4444;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px}
+.role-box{padding:14px 16px;border-top:1px solid #1E2A3A}
+.role-label{font-size:10px;color:#475569;font-weight:700;text-transform:uppercase;margin-bottom:3px}
+.role-val{font-size:13px;font-weight:700;color:#F97316}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0}
+.topbar{padding:14px 24px;border-bottom:1px solid #1E2A3A;display:flex;align-items:center;justify-content:space-between;background:#161B27;position:sticky;top:0;z-index:10}
+.topbar-title{font-size:15px;font-weight:700;color:#F1F5F9}
+.content{padding:20px 24px;flex:1}
+.page{display:none}.page.active{display:block}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.btn-primary{background:#F97316;color:#fff}.btn-primary:hover{background:#EA6C10}
+.btn-secondary{background:#1E2A3A;color:#94A3B8;border:1px solid #2D3748}.btn-secondary:hover{background:#263547;color:#E2E8F0}
+.btn-success{background:rgba(16,185,129,.12);color:#10B981;border:1px solid rgba(16,185,129,.25)}
+.btn-danger{background:rgba(239,68,68,.1);color:#EF4444;border:1px solid rgba(239,68,68,.25)}
+.btn-sm{padding:5px 10px;font-size:12px}.btn-xs{padding:3px 8px;font-size:11px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:#161B27;border:1px solid #1E2A3A;border-radius:12px;padding:16px}
+.stat-lbl{font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.stat-val{font-size:20px;font-weight:800;color:#F1F5F9}
+.stat-sub{font-size:11px;color:#64748B;margin-top:4px}
+.tbl-wrap{overflow:hidden;border-radius:12px;border:1px solid #1E2A3A;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:500px}
+thead th{background:#1A2232;padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #1E2A3A;white-space:nowrap}
+tbody tr{border-bottom:1px solid #1A2232;transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#1A2232}
+tbody td{padding:10px 14px;color:#CBD5E1;vertical-align:middle}
+.input{background:#1A2232;border:1px solid #2D3748;border-radius:8px;padding:9px 12px;font-size:13px;color:#E2E8F0;font-family:inherit;width:100%;outline:none;transition:border-color .15s}
+.input:focus{border-color:#F97316}.input::placeholder{color:#475569}
+select.input option{background:#1A2232}
+.search-bar{display:flex;gap:8px;margin-bottom:16px}.search-bar .input{flex:1}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.tag{display:inline-block;padding:2px 8px;background:#1E2A3A;border-radius:4px;font-size:11px;color:#64748B}
+.alert{border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:13px}
+.alert-red{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#FCA5A5}
+.alert-yellow{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#FDE68A}
+.tab-bar{display:flex;border-bottom:1px solid #1E2A3A;margin-bottom:18px}
+.tab{padding:10px 16px;font-size:13px;font-weight:600;color:#64748B;cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+.tab.active{color:#F97316;border-bottom-color:#F97316}.tab:hover:not(.active){color:#CBD5E1}
+.quick-sale{background:linear-gradient(135deg,#F97316,#EA580C);border-radius:12px;padding:18px 20px;margin-bottom:16px;cursor:pointer;border:none;width:100%;text-align:left;font-family:inherit;transition:opacity .15s}
+.quick-sale:hover{opacity:.9}
+.quick-sale h3{font-size:14px;font-weight:700;color:#fff}
+.quick-sale p{font-size:12px;color:rgba(255,255,255,.75);margin-top:3px}
+.card{background:#161B27;border:1px solid #1E2A3A;border-radius:12px;padding:18px}
+.card-title{font-size:14px;font-weight:700;color:#F1F5F9;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bar-lbl{font-size:12px;color:#94A3B8;width:150px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:8px;background:#1E2A3A;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s}
+.bar-val{font-size:12px;color:#64748B;width:80px;text-align:right;flex-shrink:0}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:#161B27;border:1px solid #2D3748;border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto}
+.modal.wide{max-width:700px}
+.modal-hd{padding:20px 22px 0;display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-size:15px;font-weight:700;color:#F1F5F9}
+.modal-body{padding:18px 22px;display:flex;flex-direction:column;gap:13px}
+.modal-ft{padding:0 22px 18px;display:flex;justify-content:flex-end;gap:8px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg label{display:block;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.close-x{background:none;border:none;color:#64748B;font-size:20px;cursor:pointer;padding:2px;line-height:1}.close-x:hover{color:#E2E8F0}
+.total-box{background:#1A2232;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.total-val{font-size:16px;font-weight:800;color:#F97316}
+.bc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.bc-card{background:#161B27;border:1px solid #1E2A3A;border-radius:12px;padding:14px}
+.scan-banner{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:18px;margin-bottom:16px;text-align:center}
+.red{color:#EF4444;font-weight:700}.green{color:#10B981}.orange{color:#F97316;font-weight:700}
+.pager{display:flex;align-items:center;gap:8px;margin-top:14px;justify-content:center}
+.pager-info{font-size:12px;color:#64748B}
+.pager-btn{padding:5px 12px;font-size:12px;background:#1E2A3A;border:1px solid #2D3748;border-radius:6px;color:#94A3B8;cursor:pointer;font-family:inherit}
+.pager-btn:hover:not(:disabled){background:#263547;color:#E2E8F0}
+.pager-btn:disabled{opacity:.4;cursor:default}
+.car-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.car-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);border-radius:12px;font-size:11px;color:#3B82F6;cursor:pointer}
+.car-tag.selected{background:rgba(249,115,22,.15);border-color:rgba(249,115,22,.4);color:#F97316}
+.product-search-results{background:#1A2232;border:1px solid #2D3748;border-radius:8px;margin-top:4px;max-height:220px;overflow-y:auto;display:none}
+.product-result-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid #2D3748;display:flex;gap:12px;align-items:center}
+.product-result-item:last-child{border-bottom:none}
+.product-result-item:hover{background:#263547}
+.product-selected{display:none;margin-top:6px;padding:10px 14px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;font-size:13px}
+.vip-badge{background:rgba(250,204,21,.12);color:#FBBF24;border:1px solid rgba(250,204,21,.25);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.ordered-row{background:rgba(59,130,246,.04)}
+.receipt{font-family:'Courier New',monospace;font-size:12px;background:#fff;color:#000;padding:20px;border-radius:8px;max-width:320px;margin:0 auto}
+.receipt *{color:#000!important;background:#fff!important}
+.r-center{text-align:center}.r-bold{font-weight:bold}.r-sep{border-top:1px dashed #000;margin:8px 0}.r-row{display:flex;justify-content:space-between}
+.camera-modal{background:#161B27;border:1px solid #2D3748;border-radius:16px;width:100%;max-width:400px;overflow:hidden}
+video{width:100%;display:block}
+/* Mobile */
+@media(max-width:768px){
+  .app{flex-direction:column}
+  .sidebar{display:none!important}
+  .main{height:100vh;padding-bottom:68px;overflow-y:auto}
+  .stat-grid{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .stat-card{padding:12px}.stat-val{font-size:17px}
+  .grid2{grid-template-columns:1fr}
+  .content{padding:12px}
+  .topbar{padding:10px 14px}
+  .form-row{grid-template-columns:1fr}
+  .modal{max-width:100%!important;border-radius:20px 20px 0 0;position:fixed!important;bottom:0!important;left:0!important;right:0!important;top:auto!important;max-height:90vh}
+  .overlay{align-items:flex-end!important;padding:0!important}
+  .bc-grid{grid-template-columns:1fr}
+  .mobile-nav{display:flex!important}
+}
+@media(min-width:769px){.mobile-nav{display:none!important}#mob-drawer{display:none!important}}
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#161B27;border-top:1px solid #1E2A3A;align-items:stretch;z-index:100;height:62px;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -4px 20px rgba(0,0,0,.4)}
+.mob-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;cursor:pointer;font-family:inherit;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:8px 2px;transition:all .15s;position:relative;-webkit-tap-highlight-color:transparent}
+.mob-btn.active{color:#F97316}
+.mob-btn-icon{font-size:22px;line-height:1}
+.mob-badge{position:absolute;top:5px;right:calc(50% - 20px);background:#EF4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;min-width:16px;text-align:center}
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:998;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.green{background:#10B981;color:#fff}.toast.red{background:#EF4444;color:#fff}
+</style>
+</head>
+<body>
+<div class="app" id="main-app">
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-tag">AutoParts</div>
+      <div class="logo-name">Управление магазином</div>
+      <div class="logo-sync"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Подключение...</span></div>
+    </div>
+    <div class="nav">
+      <button class="nav-btn active" data-page="dashboard"><span class="nav-icon">📊</span>Дашборд</button>
+      <div class="nav-section">Торговля</div>
+      <button class="nav-btn" data-page="sales"><span class="nav-icon">🛒</span>Продажи<span class="nav-badge" id="badge-sales" style="display:none"></span></button>
+      <button class="nav-btn" data-page="customers"><span class="nav-icon">👥</span>Клиенты</button>
+      <button class="nav-btn" data-page="returns"><span class="nav-icon">↩️</span>Возвраты<span class="nav-badge" id="badge-returns" style="display:none"></span></button>
+      <div class="nav-section">Склад</div>
+      <button class="nav-btn" data-page="inventory"><span class="nav-icon">📦</span>Товары<span class="nav-badge" id="badge-inventory" style="display:none"></span></button>
+      <button class="nav-btn" data-page="ordered"><span class="nav-icon">🚢</span>Заказано<span class="nav-badge" id="badge-ordered" style="display:none"></span></button>
+      <button class="nav-btn" data-page="barcodes"><span class="nav-icon">📷</span>Штрихкоды</button>
+      <div class="nav-section">Закупки</div>
+      <button class="nav-btn" data-page="procurement"><span class="nav-icon">🚚</span>Закуп</button>
+      <div class="nav-section">Отчёты</div>
+      <button class="nav-btn" data-page="analytics"><span class="nav-icon">📈</span>Аналитика</button>
+    </div>
+    <div class="role-box"><div style="font-size:10px;color:#475569;font-weight:700;text-transform:uppercase;margin-bottom:3px">Роль</div><div style="font-size:13px;font-weight:700;color:#F97316">👤 Владелец</div></div>
+  </nav>
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Главная</span>
+      <span style="font-size:12px;color:#475569" id="top-date"></span>
+    </div>
+    <div class="content">
+      <div class="page active" id="page-dashboard"></div>
+      <div class="page" id="page-sales">
+        <button class="quick-sale" onclick="openNewSale()"><h3>⚡ Быстрое оформление продажи</h3><p>Нажмите чтобы создать заказ</p></button>
+        <div class="search-bar"><input class="input" id="sales-search" placeholder="🔍  Поиск по клиенту или номеру заказа..." oninput="renderSalesTable()"></div>
+        <div class="tbl-wrap"><table><thead><tr><th>№</th><th>Клиент</th><th>Товар</th><th>Сумма</th><th>Дата</th><th>Статус</th><th>Чек</th></tr></thead><tbody id="sales-tbody"></tbody></table></div>
+      </div>
+      <div class="page" id="page-customers">
+        <div class="search-bar"><input class="input" id="cust-search" placeholder="🔍  Поиск клиента..." oninput="renderCustomers()"></div>
+        <div id="customers-content"></div>
+      </div>
+      <div class="page" id="page-returns">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-weight:700;font-size:15px;color:#F1F5F9">Возвраты товаров</div>
+          <button class="btn btn-primary" onclick="openNewReturn()">+ Оформить возврат</button>
+        </div>
+        <div id="returns-list"></div>
+      </div>
+      <div class="page" id="page-inventory">
+        <div class="search-bar">
+          <input class="input" id="inv-search" placeholder="🔍  Поиск по названию, артикулу, марке авто..." oninput="debounceInvSearch()">
+          <button class="btn btn-primary" onclick="openAddProduct()">+ Добавить товар</button>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:12px" id="inv-count"></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Товар</th><th>Артикул</th><th>Цена</th><th>Остаток</th><th>Совместимость</th><th>Ссылка</th><th></th></tr></thead><tbody id="inv-tbody"></tbody></table></div>
+        <div class="pager" id="inv-pager"></div>
+      </div>
+      <div class="page" id="page-ordered">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div><div style="font-weight:700;font-size:15px;color:#F1F5F9">🚢 Заказано у поставщиков</div><div style="font-size:12px;color:#64748B;margin-top:2px">При получении нажмите ✅ — товар перейдёт в наличие</div></div>
+          <button class="btn btn-primary" onclick="openAddOrdered()">+ Добавить в заказ</button>
+        </div>
+        <div id="ordered-list"></div>
+      </div>
+      <div class="page" id="page-barcodes">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-weight:700;font-size:15px;color:#F1F5F9">Штрихкоды товаров</div>
+            <div style="font-size:12px;color:#64748B;margin-top:2px">Нажмите 🖨️ чтобы распечатать и наклеить на товар</div>
+          </div>
+          <button class="btn btn-success" id="scan-toggle-btn" onclick="toggleScanMode()">📷 Сканировать штрихкод</button>
+        </div>
+        <!-- Scan result area -->
+        <div id="scan-banner" style="display:none" class="scan-banner">
+          <div style="font-size:26px;margin-bottom:6px">📷</div>
+          <div style="font-weight:700;color:#10B981;font-size:14px;margin-bottom:4px">Наведите камеру на штрихкод товара</div>
+          <div style="font-size:12px;color:#64748B;margin-bottom:10px">После сканирования покажется информация о товаре</div>
+          <video id="scan-video" style="width:100%;max-width:360px;border-radius:10px;margin:0 auto;display:block"></video>
+          <div id="scan-result-box" style="margin-top:12px"></div>
+          <button class="btn btn-danger btn-sm" style="margin-top:12px" onclick="stopCamera()">✕ Закрыть камеру</button>
+        </div>
+        <div class="search-bar"><input class="input" id="bc-search" placeholder="🔍  Поиск по названию или артикулу..." oninput="renderBarcodes()"></div>
+        <div class="bc-grid" id="bc-grid"></div>
+      </div>
+      <div class="page" id="page-procurement">
+        <div style="font-weight:700;font-size:15px;color:#F1F5F9;margin-bottom:4px">Закуп</div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:16px">Автоматически из раздела "Заказано"</div>
+        <div id="procurement-content"></div>
+      </div>
+      <div class="page" id="page-analytics"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile nav -->
+<nav class="mobile-nav" id="mobile-nav">
+  <button class="mob-btn active" data-page="dashboard" onclick="goTo('dashboard');setMobActive(this)"><span class="mob-btn-icon">📊</span>Главная</button>
+  <button class="mob-btn" data-page="sales" onclick="goTo('sales');setMobActive(this)"><span class="mob-btn-icon">🛒</span>Продажи<span class="mob-badge" id="mbadge-sales" style="display:none"></span></button>
+  <button class="mob-btn" data-page="inventory" onclick="goTo('inventory');setMobActive(this)"><span class="mob-btn-icon">📦</span>Склад<span class="mob-badge" id="mbadge-inventory" style="display:none"></span></button>
+  <button class="mob-btn" data-page="ordered" onclick="goTo('ordered');setMobActive(this)"><span class="mob-btn-icon">🚢</span>Заказано<span class="mob-badge" id="mbadge-ordered" style="display:none"></span></button>
+  <button class="mob-btn" onclick="toggleMobileMenu()"><span class="mob-btn-icon">☰</span>Ещё</button>
+</nav>
+<div id="mob-drawer" style="display:none;position:fixed;bottom:62px;left:0;right:0;background:#161B27;border-top:1px solid #1E2A3A;z-index:49;padding:8px">
+  <button class="mob-btn" style="flex-direction:row;gap:12px;justify-content:flex-start;padding:12px 16px;width:100%;font-size:13px;text-transform:none;letter-spacing:0" onclick="goTo('customers');setMobActive(null);closeMobileMenu()"><span style="font-size:20px">👥</span>Клиенты</button>
+  <button class="mob-btn" style="flex-direction:row;gap:12px;justify-content:flex-start;padding:12px 16px;width:100%;font-size:13px;text-transform:none;letter-spacing:0" onclick="goTo('returns');setMobActive(null);closeMobileMenu()"><span style="font-size:20px">↩️</span>Возвраты</button>
+  <button class="mob-btn" style="flex-direction:row;gap:12px;justify-content:flex-start;padding:12px 16px;width:100%;font-size:13px;text-transform:none;letter-spacing:0" onclick="goTo('barcodes');setMobActive(null);closeMobileMenu()"><span style="font-size:20px">📷</span>Штрихкоды</button>
+  <button class="mob-btn" style="flex-direction:row;gap:12px;justify-content:flex-start;padding:12px 16px;width:100%;font-size:13px;text-transform:none;letter-spacing:0" onclick="goTo('analytics');setMobActive(null);closeMobileMenu()"><span style="font-size:20px">📈</span>Аналитика</button>
+</div>
+
+<!-- Modals -->
+<div class="overlay" id="modal-sale">
+  <div class="modal wide">
+    <div class="modal-hd"><span class="modal-title">⚡ Новая продажа</span><button class="close-x" onclick="closeModal('modal-sale')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="fg"><label>Телефон клиента (Казахстан)</label><input class="input" id="s-phone" placeholder="+7 700 000-00-00" oninput="formatPhone(this)"></div>
+        <div class="fg"><label>Автомобиль</label>
+          <select class="input" id="s-car" onchange="filterProductsByCar()">
+            <option value="">— Все автомобили —</option>
+            <option>Volkswagen</option><option>BMW</option><option>Mercedes</option>
+            <option>Hyundai</option><option>Kia</option><option>Toyota</option>
+            <option>Chevrolet</option><option>Lada</option><option>Audi</option>
+            <option>Opel</option><option>Nissan</option><option>Mazda</option>
+            <option>Honda</option><option>Mitsubishi</option><option>Subaru</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Поиск товара (название или артикул)</label>
+        <input class="input" id="s-product-search" placeholder="Введите название или артикул..." oninput="searchProductForSale()">
+        <div class="product-search-results" id="s-product-results"></div>
+        <input type="hidden" id="s-product-id">
+        <div class="product-selected" id="s-product-selected"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Количество</label><input class="input" type="number" id="s-qty" value="1" min="1" oninput="updateSaleTotal()"></div>
+        <div class="fg"><label>Цена (₸) — авто или вручную</label><input class="input" type="number" id="s-price" placeholder="0" oninput="updateSaleTotal()"></div>
+      </div>
+      <div class="total-box"><span style="font-size:13px;color:#64748B">Итого:</span><span class="total-val" id="s-total">0 ₸</span></div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-secondary" onclick="closeModal('modal-sale')">Отмена</button><button class="btn btn-primary" onclick="createOrder()">Оформить заказ</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-receipt">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-title">🖨️ Чек</span><button class="close-x" onclick="closeModal('modal-receipt')">×</button></div>
+    <div class="modal-body"><div id="receipt-content"></div></div>
+    <div class="modal-ft"><button class="btn btn-secondary" onclick="closeModal('modal-receipt')">Закрыть</button><button class="btn btn-primary" onclick="printReceipt()">🖨️ Распечатать</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-product">
+  <div class="modal wide">
+    <div class="modal-hd"><span class="modal-title" id="product-modal-title">Добавить товар</span><button class="close-x" onclick="closeModal('modal-product')">×</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>Название</label><input class="input" id="p-name" placeholder="Фильтр масляный Mann W719/30"></div>
+      <div class="form-row">
+        <div class="fg"><label>Артикул</label><input class="input" id="p-sku" placeholder="W719-30"></div>
+        <div class="fg"><label>Бренд</label><input class="input" id="p-brand"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Цена закупки ₸</label><input class="input" type="number" id="p-buy"></div>
+        <div class="fg"><label>Цена продажи ₸</label><input class="input" type="number" id="p-sell"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Остаток (шт)</label><input class="input" type="number" id="p-qty"></div>
+        <div class="fg"><label>Мин. остаток</label><input class="input" type="number" id="p-qmin" value="3"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Ячейка</label><input class="input" id="p-loc" placeholder="A-1-01"></div>
+        <div class="fg"><label>Штрихкод</label><input class="input" id="p-bc"></div>
+      </div>
+      <div class="fg"><label>Ссылка (Google / сайт поставщика)</label><input class="input" id="p-link" placeholder="https://..."></div>
+      <div class="fg">
+        <label>Совместимость (выбери марки авто)</label>
+        <div class="car-tags" id="car-tags-selector"></div>
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-secondary" onclick="closeModal('modal-product')">Отмена</button><button class="btn btn-primary" onclick="saveProduct()">Сохранить</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-return">
+  <div class="modal wide">
+    <div class="modal-hd"><span class="modal-title">↩️ Оформить возврат</span><button class="close-x" onclick="closeModal('modal-return')">×</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>Завершённый заказ</label><select class="input" id="ret-order" onchange="loadReturnItems()"><option value="">— Выберите заказ —</option></select></div>
+      <div class="fg"><label>Причина возврата</label>
+        <select class="input" id="ret-reason"><option value="">— Выберите —</option><option>Брак / дефект</option><option>Не подошло по совместимости</option><option>Ошибка заказа</option><option>Клиент передумал</option><option>Другое</option></select>
+      </div>
+      <div id="ret-items"></div>
+      <div id="ret-total-box" style="display:none" class="total-box"><span style="font-size:13px;color:#FCA5A5">К возврату:</span><span id="ret-total" style="font-size:16px;font-weight:800;color:#EF4444">0 ₸</span></div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-secondary" onclick="closeModal('modal-return')">Отмена</button><button class="btn btn-primary" onclick="createReturn()">Оформить</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-ordered">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-title">🚢 Добавить в заказ</span><button class="close-x" onclick="closeModal('modal-ordered')">×</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>Название товара</label><input class="input" id="ord-name" placeholder="Фильтр масляный Mann"></div>
+      <div class="form-row">
+        <div class="fg"><label>Артикул</label><input class="input" id="ord-sku"></div>
+        <div class="fg"><label>Поставщик</label><input class="input" id="ord-supplier" placeholder="ООО АвтоЛогист"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Цена ₸</label><input class="input" type="number" id="ord-price"></div>
+        <div class="fg"><label>Ожидаемая дата</label><input class="input" type="date" id="ord-date"></div>
+      </div>
+      <div class="fg"><label>Ссылка</label><input class="input" id="ord-link" placeholder="https://..."></div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-secondary" onclick="closeModal('modal-ordered')">Отмена</button><button class="btn btn-primary" onclick="saveOrdered()">Добавить</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-barcode">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-title">Штрихкод товара</span><button class="close-x" onclick="closeModal('modal-barcode')">×</button></div>
+    <div class="modal-body">
+      <div id="bc-product-name" style="font-weight:600;color:#E2E8F0;margin-bottom:4px"></div>
+      <div class="fg"><label>Штрихкод</label><input class="input" id="bc-value" oninput="previewBarcode()"></div>
+      <div id="bc-preview" style="display:flex;justify-content:center;margin-top:4px"></div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-secondary" onclick="closeModal('modal-barcode')">Отмена</button><button class="btn btn-primary" onclick="saveBarcodeEdit()">Сохранить</button></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// INLINE SUPABASE CLIENT
+// ══════════════════════════════════════════════════════════════════
+const SUPA_URL = 'https://ztpxsqfcffmfcemuvqrf.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0cHhzcWZjZmZtZmNlbXV2cXJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzI4NDUsImV4cCI6MjA4OTQwODg0NX0.lLlWkaAaOKwQNNsm5eJP0OBNMi9hqJIXqtf_2fxPdKU';
+
+const _h = {'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+
+async function sbGet(table, qs='') {
+  const r = await fetch(SUPA_URL+'/rest/v1/'+table+'?select=*'+qs, {headers:_h});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbInsert(table, data) {
+  const r = await fetch(SUPA_URL+'/rest/v1/'+table, {method:'POST',headers:_h,body:JSON.stringify(data)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbUpdate(table, id, data) {
+  const r = await fetch(SUPA_URL+'/rest/v1/'+table+'?id=eq.'+id, {method:'PATCH',headers:{..._h,'Prefer':'return=minimal'},body:JSON.stringify(data)});
+  if(!r.ok) throw new Error(await r.text());
+}
+async function sbDelete(table, id) {
+  const r = await fetch(SUPA_URL+'/rest/v1/'+table+'?id=eq.'+id, {method:'DELETE',headers:_h});
+  if(!r.ok) throw new Error(await r.text());
+}
+async function sbUpsert(table, data) {
+  if(!data||!data.length) return;
+  const r = await fetch(SUPA_URL+'/rest/v1/'+table, {method:'POST',headers:{..._h,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(data)});
+  if(!r.ok) throw new Error(await r.text());
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════════
+const PAGE_SIZE = 50;
+const CAR_BRANDS = ['Volkswagen','BMW','Mercedes','Hyundai','Kia','Toyota','Chevrolet','Lada','Audi','Opel','Nissan','Mazda','Honda','Mitsubishi','Subaru'];
+const STATUS_ORDER = {new:{l:'Новый',c:'#3B82F6'},in_progress:{l:'В работе',c:'#F59E0B'},completed:{l:'Завершён',c:'#10B981'},cancelled:{l:'Отменён',c:'#EF4444'}};
+const STATUS_RET = {pending:{l:'Ожидает',c:'#F59E0B'},approved:{l:'Принят',c:'#10B981'},rejected:{l:'Отклонён',c:'#EF4444'}};
+const STATUS_ORD = {pending:{l:'В пути',c:'#F59E0B'},arrived:{l:'Прибыл',c:'#10B981'}};
+const fmt = n => Number(n||0).toLocaleString('ru-RU') + ' ₸';
+const fmtN = n => Number(n||0).toLocaleString('ru-RU');
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const PAGE_TITLES = {dashboard:'Главная',sales:'Продажи',customers:'Клиенты',returns:'Возвраты',inventory:'Склад',ordered:'Заказано',barcodes:'Штрихкоды',procurement:'Закуп',analytics:'Аналитика'};
+
+let products=[], customers=[], orders=[], returns=[], orderedItems=[];
+let invPage=1, invTotal=0, invSearchTimer=null;
+let currentReceiptOrder=null, editProductId=null, editBarcodeId=null;
+let selectedCarTags=[], saleProductResults=[], scanMode=false, scanStream=null;
+
+function badge(status, map) {
+  const s=map[status]||{l:status,c:'#64748B'};
+  return `<span class="badge" style="background:${s.c}22;color:${s.c}"><span style="width:5px;height:5px;border-radius:50%;background:${s.c};display:inline-block"></span>${s.l}</span>`;
+}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function showToast(msg,type='green'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type;t.style.opacity='1';clearTimeout(window._tt);window._tt=setTimeout(()=>{t.style.opacity='0';},2200);}
+function setSyncStatus(ok){const d=document.getElementById('sync-dot'),l=document.getElementById('sync-label');if(!d)return;d.className='sync-dot'+(ok?' ok':'');l.textContent=ok?'Синхронизировано':'Нет соединения';}
+function setMobActive(btn){document.querySelectorAll('.mob-btn[data-page]').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');}
+function toggleMobileMenu(){const d=document.getElementById('mob-drawer');d.style.display=d.style.display==='none'?'block':'none';}
+function closeMobileMenu(){document.getElementById('mob-drawer').style.display='none';}
+document.addEventListener('click',e=>{const d=document.getElementById('mob-drawer');if(d&&!d.contains(e.target)&&!e.target.closest('.mob-btn')){d.style.display='none';}});
+
+function formatPhone(inp) {
+  let v = inp.value.replace(/\D/g,'');
+  if(v.startsWith('8')) v='7'+v.slice(1);
+  if(v.startsWith('7') && v.length>1) inp.value='+7 '+v.slice(1,4)+' '+v.slice(4,7)+'-'+v.slice(7,9)+'-'+v.slice(9,11);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════════
+document.querySelectorAll('.nav-btn[data-page]').forEach(btn=>{
+  btn.addEventListener('click',()=>goTo(btn.dataset.page));
+});
+
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const nb = document.querySelector(`.nav-btn[data-page="${page}"]`);
+  if(nb) nb.classList.add('active');
+  document.getElementById('page-title').textContent=PAGE_TITLES[page]||page;
+  renderPage(page);
+}
+
+function renderPage(p) {
+  if(p==='dashboard') renderDashboard();
+  else if(p==='sales') renderSalesTable();
+  else if(p==='customers') renderCustomers();
+  else if(p==='returns') renderReturns();
+  else if(p==='inventory') {invPage=1;renderInventory();}
+  else if(p==='ordered') renderOrdered();
+  else if(p==='barcodes') renderBarcodes();
+  else if(p==='procurement') renderProcurement();
+  else if(p==='analytics') renderAnalytics();
+}
+
+function updateBadges() {
+  const lowStock=products.filter(p=>p.qty<=p.qty_min).length;
+  const newOrders=orders.filter(o=>o.status==='new').length;
+  const pendingRet=returns.filter(r=>r.status==='pending').length;
+  const pendingOrd=orderedItems.filter(o=>o.status==='pending').length;
+  const b=(id,n)=>{const el=document.getElementById(id);if(!el)return;el.style.display=n>0?'':'none';el.textContent=n;};
+  b('badge-inventory',lowStock);b('badge-sales',newOrders);b('badge-returns',pendingRet);b('badge-ordered',pendingOrd);
+  b('mbadge-inventory',lowStock);b('mbadge-sales',newOrders);b('mbadge-ordered',pendingOrd);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DATA LOADING
+// ══════════════════════════════════════════════════════════════════
+async function loadAllData() {
+  const [cust,ord,ret,oi,ordItems] = await Promise.all([
+    sbGet('customers','&order=name'),
+    sbGet('orders','&order=created_at.desc&limit=300'),
+    sbGet('returns','&order=created_at.desc'),
+    sbGet('order_items','&limit=2000'),
+    sbGet('ordered_items','&order=created_at.desc').catch(()=>[]),
+  ]);
+  customers=cust||[];
+  returns=ret||[];
+  orderedItems=ordItems||[];
+  const allItems=oi||[];
+  orders=(ord||[]).map(o=>({...o,items:allItems.filter(i=>i.order_id===o.id)}));
+}
+
+async function loadProducts(page=1, search='') {
+  invPage=page;
+  let q=SUPA_URL+'/rest/v1/products?select=*';
+  if(search.trim()) q+=`&or=(name.ilike.%25${encodeURIComponent(search)}%25,sku.ilike.%25${encodeURIComponent(search)}%25,compatible.ilike.%25${encodeURIComponent(search)}%25)`;
+  const countH={..._h,'Prefer':'count=exact'};
+  const r=await fetch(q+`&order=name&limit=${PAGE_SIZE}&offset=${(page-1)*PAGE_SIZE}`,{headers:countH});
+  const ct=r.headers.get('content-range');
+  invTotal=ct?parseInt(ct.split('/')[1]):0;
+  products=await r.json()||[];
+  return {data:products,total:invTotal};
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════════════
+async function renderDashboard() {
+  const revenue=orders.filter(o=>o.status==='completed').reduce((s,o)=>s+(+o.total),0);
+  const retTotal=returns.filter(r=>r.status==='approved').reduce((s,r)=>s+(+r.total),0);
+  const newO=orders.filter(o=>o.status==='new').length;
+  const pendR=returns.filter(r=>r.status==='pending').length;
+  const pendOrd=orderedItems.filter(o=>o.status==='pending').length;
+  const {data:lowP}=await loadProducts(1,'').then(()=>({data:products.filter(p=>p.qty<=p.qty_min).slice(0,10)})).catch(()=>({data:[]}));
+
+  let alerts='';
+  if(lowP&&lowP.length) alerts+=`<div class="alert alert-red">⚠️ <strong>${lowP.length} товар${lowP.length>1?'а':''} заканчивается</strong></div>`;
+  if(pendR) alerts+=`<div class="alert alert-yellow">↩️ <strong>${pendR} возврат${pendR>1?'а':''}</strong> ожидает</div>`;
+  if(pendOrd) alerts+=`<div class="alert" style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);color:#93C5FD">🚢 <strong>${pendOrd} товар${pendOrd>1?'а':''}</strong> в пути от поставщиков</div>`;
+
+  const vip=customers.filter(c=>(c.order_count||0)>=5).length;
+  const topCust=[...customers].sort((a,b)=>(b.total_spent||0)-(a.total_spent||0)).slice(0,3);
+
+  document.getElementById('page-dashboard').innerHTML=`
+    ${alerts}
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-lbl">Выручка</div><div class="stat-val">${fmtN(revenue-retTotal)} ₸</div><div class="stat-sub" style="color:#10B981">За все время</div></div>
+      <div class="stat-card"><div class="stat-lbl">Заказов</div><div class="stat-val">${orders.length}</div><div class="stat-sub" style="color:${newO?'#3B82F6':'#64748B'}">${newO?newO+' новых':'Все обработаны'}</div></div>
+      <div class="stat-card"><div class="stat-lbl">Клиентов</div><div class="stat-val">${customers.length}</div><div class="stat-sub" style="color:#FBBF24">${vip} ⭐ постоянных</div></div>
+      <div class="stat-card"><div class="stat-lbl">В заказе</div><div class="stat-val">${pendOrd}</div><div class="stat-sub">Ожидают поставки</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">Последние заказы</div>
+        ${orders.slice(0,5).map(o=>{
+          const c=customers.find(x=>x.id===o.customer_id);
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1E2A3A">
+            <div><div style="font-size:13px;font-weight:600;color:#E2E8F0">#${o.id} — ${esc(c?.phone||'Клиент')}</div><div style="font-size:11px;color:#64748B">${(o.created_at||'').slice(0,10)}</div></div>
+            <div style="text-align:right"><div style="font-size:13px;font-weight:700;color:#F97316">${fmtN(o.total)} ₸</div>${badge(o.status,STATUS_ORDER)}</div>
+          </div>`;
+        }).join('')||'<div style="color:#64748B;font-size:13px">Заказов пока нет</div>'}
+      </div>
+      <div class="card"><div class="card-title">⭐ Топ клиенты</div>
+        ${topCust.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1E2A3A">
+          <div><div style="font-size:13px;font-weight:600;color:#E2E8F0">${esc(c.phone)}</div><div style="font-size:11px;color:#64748B">${c.order_count||0} покупок</div></div>
+          <div style="text-align:right"><div style="font-size:13px;font-weight:700;color:#F97316">${fmtN(c.total_spent||0)} ₸</div>${(c.order_count||0)>=5?'<span class="vip-badge">⭐ VIP</span>':''}</div>
+        </div>`).join('')||'<div style="color:#64748B;font-size:13px">Клиентов пока нет</div>'}
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INVENTORY
+// ══════════════════════════════════════════════════════════════════
+function debounceInvSearch(){clearTimeout(invSearchTimer);invSearchTimer=setTimeout(()=>{invPage=1;renderInventory();},350);}
+
+async function renderInventory() {
+  const q=document.getElementById('inv-search').value;
+  document.getElementById('inv-tbody').innerHTML=`<tr><td colspan="7" style="text-align:center;padding:20px;color:#475569">Загрузка...</td></tr>`;
+  await loadProducts(invPage,q);
+  document.getElementById('inv-count').textContent=`Товаров в базе: ${fmtN(invTotal)} шт.`;
+  document.getElementById('inv-tbody').innerHTML=products.map(p=>{
+    const cars=parseCompat(p.compatible);
+    return `<tr>
+      <td><span style="font-weight:600;color:#E2E8F0">${esc(p.name.length>30?p.name.slice(0,30)+'…':p.name)}</span><div style="font-size:11px;color:#475569;margin-top:2px">${esc(p.brand||'')}</div></td>
+      <td><span class="tag">${esc(p.sku||'—')}</span></td>
+      <td style="font-weight:700;color:#F97316">${fmtN(p.price_sell)} ₸</td>
+      <td class="${p.qty<=p.qty_min?'red':'green'}">${p.qty} шт${p.qty<=p.qty_min?' ⚠️':''}</td>
+      <td><div style="display:flex;flex-wrap:wrap;gap:3px">${cars.map(c=>`<span class="tag">${esc(c)}</span>`).join('')||'—'}</div></td>
+      <td>${p.link?`<a href="${esc(p.link)}" target="_blank" style="color:#3B82F6;font-size:12px">🔗 Ссылка</a>`:'—'}</td>
+      <td><button class="btn btn-secondary btn-xs" onclick="openEditProduct(${p.id})">✏️</button></td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="7" style="text-align:center;padding:30px;color:#475569">Товары не найдены</td></tr>`;
+  document.getElementById('inv-pager').innerHTML=pager(invTotal,invPage,'renderInventoryPage');
+  updateBadges();
+}
+
+window.renderInventoryPage=async function(page){invPage=page;renderInventory();};
+
+function parseCompat(compatible) {
+  if(!compatible) return [];
+  try { const p=JSON.parse(compatible); return Array.isArray(p)?p:[]; } catch(e) { return compatible.split(',').map(s=>s.trim()).filter(Boolean); }
+}
+
+function pager(total,page,fn) {
+  const pages=Math.ceil(total/PAGE_SIZE);
+  if(pages<=1) return '';
+  return `<button class="pager-btn" onclick="${fn}(${page-1})" ${page<=1?'disabled':''}>← Назад</button>
+  <span class="pager-info">Стр. ${page} из ${pages} (${fmtN(total)} шт.)</span>
+  <button class="pager-btn" onclick="${fn}(${page+1})" ${page>=pages?'disabled':''}>Вперёд →</button>`;
+}
+
+function buildCarTagsSelector(selected=[]) {
+  document.getElementById('car-tags-selector').innerHTML=CAR_BRANDS.map(b=>
+    `<span class="car-tag ${selected.includes(b)?'selected':''}" onclick="toggleCarTag(this,'${b}')">${b}</span>`
+  ).join('');
+  selectedCarTags=[...selected];
+}
+function toggleCarTag(el,brand) {
+  el.classList.toggle('selected');
+  if(selectedCarTags.includes(brand)) selectedCarTags=selectedCarTags.filter(b=>b!==brand);
+  else selectedCarTags.push(brand);
+}
+
+function openAddProduct() {
+  editProductId=null;
+  document.getElementById('product-modal-title').textContent='Добавить товар';
+  ['p-name','p-sku','p-brand','p-buy','p-sell','p-qty','p-loc','p-bc','p-link'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p-qmin').value='3';
+  buildCarTagsSelector([]);
+  openModal('modal-product');
+}
+async function openEditProduct(id) {
+  const {data}=await fetch(SUPA_URL+'/rest/v1/products?id=eq.'+id,{headers:_h}).then(r=>r.json().then(d=>({data:d[0]})));
+  if(!data) return;
+  editProductId=id;
+  document.getElementById('product-modal-title').textContent='Редактировать товар';
+  document.getElementById('p-name').value=data.name||'';
+  document.getElementById('p-sku').value=data.sku||'';
+  document.getElementById('p-brand').value=data.brand||'';
+  document.getElementById('p-buy').value=data.price_buy||0;
+  document.getElementById('p-sell').value=data.price_sell||0;
+  document.getElementById('p-qty').value=data.qty||0;
+  document.getElementById('p-qmin').value=data.qty_min||3;
+  document.getElementById('p-loc').value=data.location||'';
+  document.getElementById('p-bc').value=data.barcode||'';
+  document.getElementById('p-link').value=data.link||'';
+  buildCarTagsSelector(parseCompat(data.compatible));
+  openModal('modal-product');
+}
+async function saveProduct() {
+  const name=document.getElementById('p-name').value.trim();
+  if(!name){alert('Введите название товара');return;}
+  const data={
+    name, sku:document.getElementById('p-sku').value.trim(),
+    brand:document.getElementById('p-brand').value.trim(),
+    price_buy:+document.getElementById('p-buy').value||0,
+    price_sell:+document.getElementById('p-sell').value||0,
+    qty:+document.getElementById('p-qty').value||0,
+    qty_min:+document.getElementById('p-qmin').value||3,
+    location:document.getElementById('p-loc').value.trim(),
+    barcode:document.getElementById('p-bc').value.trim(),
+    link:document.getElementById('p-link').value.trim(),
+    compatible:JSON.stringify(selectedCarTags),
+  };
+  try {
+    if(editProductId) await sbUpdate('products',editProductId,data);
+    else await sbInsert('products',data);
+    closeModal('modal-product');
+    showToast('✓ Товар сохранён');
+    renderInventory();
+  } catch(e){showToast('Ошибка: '+e.message,'red');}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ORDERED ITEMS (Заказано)
+// ══════════════════════════════════════════════════════════════════
+function renderOrdered() {
+  const el=document.getElementById('ordered-list');
+  if(!orderedItems.length){
+    el.innerHTML=`<div style="text-align:center;padding:48px;color:#475569"><div style="font-size:36px;margin-bottom:12px">🚢</div><div>Нет товаров в заказе</div></div>`;
+    return;
+  }
+  el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Товар</th><th>Артикул</th><th>Поставщик</th><th>Цена</th><th>Ожидается</th><th>Ссылка</th><th>Статус</th><th></th></tr></thead><tbody>
+    ${orderedItems.map(o=>`<tr class="${o.status==='arrived'?'':'ordered-row'}">
+      <td style="font-weight:600;color:#E2E8F0">${esc(o.name)}</td>
+      <td><span class="tag">${esc(o.sku||'—')}</span></td>
+      <td style="color:#94A3B8">${esc(o.supplier||'—')}</td>
+      <td style="color:#F97316;font-weight:700">${fmtN(o.price||0)} ₸</td>
+      <td style="color:#64748B">${o.expected_date||'—'}</td>
+      <td>${o.link?`<a href="${esc(o.link)}" target="_blank" style="color:#3B82F6;font-size:12px">🔗</a>`:'—'}</td>
+      <td>${badge(o.status||'pending',STATUS_ORD)}</td>
+      <td>${o.status==='pending'?`<button class="btn btn-success btn-xs" onclick="markOrderedArrived(${o.id})">✅ Получен</button>`:''}
+      <button class="btn btn-danger btn-xs" style="margin-left:4px" onclick="deleteOrdered(${o.id})">✕</button></td>
+    </tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+function openAddOrdered(){
+  ['ord-name','ord-sku','ord-supplier','ord-price','ord-date','ord-link'].forEach(id=>document.getElementById(id).value='');
+  openModal('modal-ordered');
+}
+async function saveOrdered(){
+  const name=document.getElementById('ord-name').value.trim();
+  if(!name){alert('Введите название');return;}
+  const data={
+    name, sku:document.getElementById('ord-sku').value.trim(),
+    supplier:document.getElementById('ord-supplier').value.trim(),
+    price:+document.getElementById('ord-price').value||0,
+    expected_date:document.getElementById('ord-date').value||null,
+    link:document.getElementById('ord-link').value.trim(),
+    status:'pending'
+  };
+  try{
+    const res=await sbInsert('ordered_items',data);
+    const newItem=Array.isArray(res)?res[0]:res;
+    if(newItem) orderedItems.unshift(newItem);
+    closeModal('modal-ordered');showToast('✓ Добавлено в заказ');renderOrdered();updateBadges();
+  }catch(e){showToast('Ошибка: '+e.message,'red');}
+}
+async function markOrderedArrived(id){
+  const item=orderedItems.find(o=>o.id===id);
+  if(!item) return;
+  if(!confirm(`Товар "${item.name}" получен?\nОн будет добавлен на склад.`)) return;
+  try{
+    // Add to products inventory
+    const existing=await fetch(SUPA_URL+'/rest/v1/products?sku=eq.'+encodeURIComponent(item.sku||'__none__'),{headers:_h}).then(r=>r.json());
+    if(existing&&existing.length>0){
+      await sbUpdate('products',existing[0].id,{qty:existing[0].qty+1});
+    } else {
+      await sbInsert('products',{name:item.name,sku:item.sku||'',price_buy:item.price||0,price_sell:Math.round((item.price||0)*1.3),qty:1,qty_min:3,link:item.link||''});
+    }
+    await sbUpdate('ordered_items',id,{status:'arrived'});
+    item.status='arrived';
+    showToast('✅ Товар добавлен на склад!');renderOrdered();renderInventory();updateBadges();
+  }catch(e){showToast('Ошибка: '+e.message,'red');}
+}
+async function deleteOrdered(id){
+  if(!confirm('Удалить из списка?')) return;
+  await sbDelete('ordered_items',id);
+  orderedItems=orderedItems.filter(o=>o.id!==id);
+  renderOrdered();updateBadges();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SALES
+// ══════════════════════════════════════════════════════════════════
+function renderSalesTable(){
+  const q=(document.getElementById('sales-search').value||'').toLowerCase();
+  const rows=orders.filter(o=>{
+    const c=customers.find(x=>x.id===o.customer_id);
+    return !q||(c&&c.phone&&c.phone.includes(q))||String(o.id).includes(q);
+  }).slice(0,100);
+  document.getElementById('sales-tbody').innerHTML=rows.map(o=>{
+    const c=customers.find(x=>x.id===o.customer_id);
+    const items=o.items||[];
+    return `<tr>
+      <td style="font-weight:700;color:#F97316">#${o.id}</td>
+      <td><div style="font-weight:600;color:#E2E8F0">${esc(c?.phone||'—')}</div>${(c?.order_count||0)>=5?'<span class="vip-badge">⭐ VIP</span>':''}</td>
+      <td style="font-size:12px;color:#94A3B8">${items.length} поз.</td>
+      <td style="font-weight:700;color:#F97316">${fmtN(o.total)} ₸</td>
+      <td style="color:#64748B">${(o.created_at||'').slice(0,10)}</td>
+      <td>${badge(o.status,STATUS_ORDER)}
+        <select class="input" style="width:auto;padding:3px 6px;font-size:11px;margin-left:6px" onchange="changeOrderStatus(${o.id},this.value)">
+          ${Object.entries(STATUS_ORDER).map(([k,v])=>`<option value="${k}"${o.status===k?' selected':''}>${v.l}</option>`).join('')}
+        </select>
+      </td>
+      <td><button class="btn btn-secondary btn-xs" onclick="showReceipt(${o.id})">🖨️</button></td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="7" style="text-align:center;padding:30px;color:#475569">Заказов нет</td></tr>`;
+}
+
+async function changeOrderStatus(id,status){
+  await sbUpdate('orders',id,{status});
+  const o=orders.find(x=>x.id===id);if(o)o.status=status;
+  updateBadges();showToast('✓ Статус обновлён');
+}
+
+// Sale modal product search
+async function filterProductsByCar(){await searchProductForSale();}
+async function searchProductForSale(){
+  const q=document.getElementById('s-product-search').value.trim();
+  const car=document.getElementById('s-car').value;
+  const res=document.getElementById('s-product-results');
+  if(q.length<1&&!car){res.style.display='none';return;}
+  let url=SUPA_URL+'/rest/v1/products?select=*&qty=gt.0';
+  if(q) url+=`&or=(name.ilike.%25${encodeURIComponent(q)}%25,sku.ilike.%25${encodeURIComponent(q)}%25)`;
+  if(car) url+=`&compatible=ilike.%25${encodeURIComponent(car)}%25`;
+  url+='&limit=10';
+  const data=await fetch(url,{headers:_h}).then(r=>r.json()).catch(()=>[]);
+  saleProductResults=data||[];
+  if(!saleProductResults.length){res.innerHTML=`<div style="padding:10px;color:#64748B;font-size:13px">Не найдено${car?' для '+car:''}</div>`;res.style.display='block';return;}
+  res.innerHTML=saleProductResults.map(p=>`
+    <div onclick="selectSaleProduct(${p.id})" class="product-result-item">
+      <div style="flex:1">
+        <div style="font-weight:600;color:#E2E8F0;font-size:13px">${esc(p.name)}</div>
+        <div style="font-size:11px;color:#64748B;margin-top:2px">Арт: ${esc(p.sku||'—')} · ${parseCompat(p.compatible).join(', ')||'Универсальный'}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-weight:700;color:#F97316;font-size:13px">${fmtN(p.price_sell)} ₸</div>
+        <div style="font-size:11px;color:${p.qty<=p.qty_min?'#EF4444':'#10B981'}">${p.qty} шт</div>
+      </div>
+    </div>`).join('');
+  res.style.display='block';
+}
+
+function selectSaleProduct(id){
+  const p=saleProductResults.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('s-product-id').value=id;
+  document.getElementById('s-product-search').value=p.name;
+  document.getElementById('s-product-results').style.display='none';
+  document.getElementById('s-price').value=p.price_sell;
+  const sel=document.getElementById('s-product-selected');
+  sel.style.display='block';
+  sel.innerHTML=`✓ <strong>${esc(p.name)}</strong> — ${fmtN(p.price_sell)} ₸ · Остаток: ${p.qty} шт`;
+  updateSaleTotal();
+}
+
+function updateSaleTotal(){
+  const qty=+document.getElementById('s-qty').value||1;
+  const price=+document.getElementById('s-price').value||0;
+  document.getElementById('s-total').textContent=fmtN(price*qty)+' ₸';
+}
+
+function openNewSale(){
+  document.getElementById('s-phone').value='';
+  document.getElementById('s-car').value='';
+  document.getElementById('s-product-search').value='';
+  document.getElementById('s-product-id').value='';
+  document.getElementById('s-product-results').style.display='none';
+  document.getElementById('s-product-selected').style.display='none';
+  document.getElementById('s-qty').value=1;
+  document.getElementById('s-price').value='';
+  document.getElementById('s-total').textContent='0 ₸';
+  saleProductResults=[];
+  openModal('modal-sale');
+}
+
+async function createOrder(){
+  const phone=document.getElementById('s-phone').value.trim();
+  const pid=+document.getElementById('s-product-id').value;
+  const qty=+document.getElementById('s-qty').value||1;
+  const price=+document.getElementById('s-price').value||0;
+  if(!phone){alert('Введите номер телефона клиента');return;}
+  if(!pid){alert('Выберите товар');return;}
+  const prod=saleProductResults.find(x=>x.id===pid);
+  if(!prod){alert('Товар не найден');return;}
+  const total=price*qty;
+  try{
+    // Upsert customer
+    let cust=customers.find(c=>c.phone===phone);
+    if(!cust){
+      const res=await sbInsert('customers',{name:phone,phone,order_count:0,total_spent:0,status:'regular'});
+      cust=Array.isArray(res)?res[0]:res;
+      if(cust) customers.push(cust);
+    }
+    // Create order
+    const ordRes=await sbInsert('orders',{customer_id:cust?.id,status:'new',total});
+    const order=Array.isArray(ordRes)?ordRes[0]:ordRes;
+    if(!order) throw new Error('Не удалось создать заказ');
+    // Add order item
+    await sbInsert('order_items',{order_id:order.id,product_id:pid,qty,price});
+    // Decrease stock
+    await sbUpdate('products',pid,{qty:prod.qty-qty});
+    // Update customer stats
+    const newCount=(cust?.order_count||0)+1;
+    const newTotal=(cust?.total_spent||0)+total;
+    await sbUpdate('customers',cust.id,{
+      order_count:newCount,
+      total_spent:newTotal,
+      status:newCount>=5?'vip':'regular'
+    });
+    if(cust){cust.order_count=newCount;cust.total_spent=newTotal;cust.status=newCount>=5?'vip':'regular';}
+    orders.unshift({...order,items:[{product_id:pid,qty,price}]});
+    closeModal('modal-sale');
+    renderSalesTable();updateBadges();
+    showReceipt(order.id);
+    showToast('✓ Заказ оформлен');
+  }catch(e){showToast('Ошибка: '+e.message,'red');}
+}
+
+// Receipt
+function showReceipt(orderId){
+  const o=orders.find(x=>x.id===orderId);if(!o) return;
+  currentReceiptOrder=o;
+  const c=customers.find(x=>x.id===o.customer_id);
+  const rid='ЧЕК-'+String(o.id).padStart(6,'0');
+  const now=new Date().toLocaleString('ru-RU');
+  const items=o.items||[];
+  let rows=items.map(item=>`<div style="margin-bottom:8px"><div style="font-size:11px">Товар #${item.product_id}</div><div class="r-row"><span>${item.qty} шт × ${fmtN(item.price)} ₸</span><strong>${fmtN(item.qty*item.price)} ₸</strong></div></div>`).join('');
+  document.getElementById('receipt-content').innerHTML=`<div class="receipt">
+    <div class="r-center r-bold" style="font-size:14px">АВТОЗАПЧАСТИ</div>
+    <div class="r-sep"></div>
+    <div class="r-center r-bold" style="font-size:13px">${rid}</div>
+    <div class="r-center" style="font-size:11px;margin-bottom:8px">${now}</div>
+    <div class="r-sep"></div>
+    ${rows}
+    <div class="r-sep"></div>
+    <div class="r-row r-bold" style="font-size:14px"><span>ИТОГО:</span><span>${fmtN(o.total)} ₸</span></div>
+    <div style="font-size:11px;margin-top:8px">Клиент: ${esc(c?.phone||'')}</div>
+    <div class="r-sep"></div>
+    <div class="r-center" style="font-size:10px">Спасибо за покупку!</div>
+  </div>`;
+  openModal('modal-receipt');
+}
+function printReceipt(){
+  const o=currentReceiptOrder;if(!o) return;
+  const c=customers.find(x=>x.id===o.customer_id);
+  const rid='ЧЕК-'+String(o.id).padStart(6,'0');
+  const now=new Date().toLocaleString('ru-RU');
+  const items=o.items||[];
+  const rows=items.map(item=>`<div>Товар #${item.product_id}</div><div style="display:flex;justify-content:space-between"><span>${item.qty} шт × ${fmtN(item.price)} ₸</span><b>${fmtN(item.qty*item.price)} ₸</b></div><br>`).join('');
+  const html=`<html><head><title>${rid}</title><style>body{font-family:'Courier New',monospace;font-size:12px;width:80mm;margin:0 auto;padding:12px;color:#000}.c{text-align:center}.b{font-weight:bold}.sep{border-top:1px dashed #000;margin:7px 0}.row{display:flex;justify-content:space-between}</style></head><body>
+  <div class="c b" style="font-size:14px">АВТОЗАПЧАСТИ</div><div class="sep"></div>
+  <div class="c b" style="font-size:13px">${rid}</div>
+  <div class="c" style="font-size:11px;margin-bottom:6px">${now}</div>
+  <div class="sep"></div>${rows}<div class="sep"></div>
+  <div class="row b" style="font-size:14px"><span>ИТОГО:</span><span>${fmtN(o.total)} ₸</span></div>
+  <div style="font-size:11px;margin-top:8px">Тел: ${esc(c?.phone||'')}</div>
+  <div class="sep"></div><div class="c" style="font-size:10px">Спасибо за покупку!</div>
+  </body></html>`;
+  printViaIframe(html);
+}
+function printViaIframe(html){
+  let fr=document.getElementById('_pf');
+  if(!fr){fr=document.createElement('iframe');fr.id='_pf';fr.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none';document.body.appendChild(fr);}
+  const doc=fr.contentDocument||fr.contentWindow.document;
+  doc.open();doc.write(html);doc.close();
+  setTimeout(()=>{try{fr.contentWindow.focus();fr.contentWindow.print();}catch(e){}},400);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CUSTOMERS
+// ══════════════════════════════════════════════════════════════════
+function renderCustomers(){
+  const q=(document.getElementById('cust-search').value||'').toLowerCase();
+  const filtered=customers.filter(c=>!q||c.phone.includes(q)).sort((a,b)=>(b.order_count||0)-(a.order_count||0));
+  const vip=filtered.filter(c=>(c.order_count||0)>=5);
+  const regular=filtered.filter(c=>(c.order_count||0)<5);
+  let html='';
+  if(vip.length){
+    html+=`<div style="font-weight:700;color:#FBBF24;font-size:13px;margin-bottom:10px">⭐ Постоянные клиенты (5+ покупок) — ${vip.length} чел.</div>`;
+    html+=`<div class="tbl-wrap" style="margin-bottom:20px"><table><thead><tr><th>Телефон</th><th>Покупок</th><th>Сумма</th><th>Статус</th></tr></thead><tbody>
+    ${vip.map(c=>`<tr>
+      <td style="font-weight:600;color:#E2E8F0">${esc(c.phone)}</td>
+      <td style="color:#FBBF24;font-weight:700">${c.order_count||0}</td>
+      <td style="font-weight:700;color:#F97316">${fmtN(c.total_spent||0)} ₸</td>
+      <td><span class="vip-badge">⭐ VIP</span></td>
+    </tr>`).join('')}</tbody></table></div>`;
+  }
+  if(regular.length){
+    html+=`<div style="font-weight:700;color:#94A3B8;font-size:13px;margin-bottom:10px">Обычные клиенты — ${regular.length} чел.</div>`;
+    html+=`<div class="tbl-wrap"><table><thead><tr><th>Телефон</th><th>Покупок</th><th>Сумма</th><th>До VIP</th></tr></thead><tbody>
+    ${regular.map(c=>`<tr>
+      <td style="font-weight:600;color:#E2E8F0">${esc(c.phone)}</td>
+      <td>${c.order_count||0}</td>
+      <td style="color:#F97316">${fmtN(c.total_spent||0)} ₸</td>
+      <td style="color:#64748B;font-size:12px">${5-(c.order_count||0)} покупок</td>
+    </tr>`).join('')}</tbody></table></div>`;
+  }
+  if(!filtered.length) html=`<div style="text-align:center;padding:48px;color:#475569"><div style="font-size:36px;margin-bottom:12px">👥</div><div>Клиентов пока нет</div></div>`;
+  document.getElementById('customers-content').innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RETURNS
+// ══════════════════════════════════════════════════════════════════
+function renderReturns(){
+  const el=document.getElementById('returns-list');
+  if(!returns.length){el.innerHTML=`<div style="text-align:center;padding:48px;color:#475569"><div style="font-size:36px;margin-bottom:12px">↩️</div><div>Возвратов нет</div></div>`;return;}
+  el.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>№</th><th>Заказ</th><th>Клиент</th><th>Дата</th><th>Причина</th><th>Сумма</th><th>Статус</th><th></th></tr></thead><tbody>
+    ${returns.map(r=>{
+      const o=orders.find(x=>x.id===r.order_id);
+      const c=customers.find(x=>x.id===o?.customer_id);
+      return `<tr>
+        <td style="font-weight:700;color:#F97316">#${r.id}</td>
+        <td style="color:#94A3B8">#${r.order_id}</td>
+        <td style="font-weight:600;color:#E2E8F0">${esc(c?.phone||'—')}</td>
+        <td style="color:#64748B">${(r.created_at||'').slice(0,10)}</td>
+        <td style="font-size:12px;color:#94A3B8">${esc(r.reason||'')}</td>
+        <td style="font-weight:700;color:#EF4444">−${fmtN(r.total)} ₸</td>
+        <td>${badge(r.status,STATUS_RET)}</td>
+        <td>${r.status==='pending'?`<button class="btn btn-success btn-xs" onclick="approveReturn(${r.id})">✓</button>
+        <button class="btn btn-danger btn-xs" onclick="rejectReturn(${r.id})" style="margin-left:4px">✗</button>`:''}</td>
+      </tr>`;
+    }).join('')}
+  </tbody></table></div>`;
+}
+
+async function approveReturn(id){
+  const r=returns.find(x=>x.id===id);if(!r)return;
+  await sbUpdate('returns',id,{status:'approved'});
+  r.status='approved';
+  renderReturns();updateBadges();showToast('✓ Возврат принят');
+}
+async function rejectReturn(id){
+  await sbUpdate('returns',id,{status:'rejected'});
+  const r=returns.find(x=>x.id===id);if(r)r.status='rejected';
+  renderReturns();updateBadges();showToast('✓ Возврат отклонён');
+}
+
+async function openNewReturn(){
+  const sel=document.getElementById('ret-order');
+  sel.innerHTML=`<option value="">— Выберите заказ —</option>`+
+    orders.filter(o=>o.status==='completed').map(o=>{
+      const c=customers.find(x=>x.id===o.customer_id);
+      return `<option value="${o.id}">#${o.id} — ${esc(c?.phone||'')} — ${fmtN(o.total)} ₸</option>`;
+    }).join('');
+  document.getElementById('ret-reason').value='';
+  document.getElementById('ret-items').innerHTML='';
+  document.getElementById('ret-total-box').style.display='none';
+  openModal('modal-return');
+}
+
+function loadReturnItems(){
+  const oid=+document.getElementById('ret-order').value;
+  const o=orders.find(x=>x.id===oid);
+  if(!o){document.getElementById('ret-items').innerHTML='';return;}
+  const items=o.items||[];
+  document.getElementById('ret-items').innerHTML=items.map((item,i)=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #1E2A3A">
+      <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#E2E8F0">Товар #${item.product_id}</div>
+      <div style="font-size:11px;color:#64748B">${fmtN(item.price)} ₸ × ${item.qty} шт</div></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span style="font-size:12px;color:#94A3B8">Вернуть:</span>
+        <input class="input" type="number" min="0" max="${item.qty}" value="0" style="width:65px;text-align:center"
+          data-price="${item.price}" oninput="updateReturnTotal()">
+        <span style="font-size:11px;color:#64748B">из ${item.qty}</span>
+      </div>
+    </div>`).join('');
+  updateReturnTotal();
+}
+function updateReturnTotal(){
+  let t=0;document.querySelectorAll('#ret-items input[type=number]').forEach(inp=>{t+=(+inp.value)*(+inp.dataset.price);});
+  const box=document.getElementById('ret-total-box');
+  if(t>0){box.style.display='flex';document.getElementById('ret-total').textContent='−'+fmtN(t)+' ₸';}else box.style.display='none';
+}
+async function createReturn(){
+  const oid=+document.getElementById('ret-order').value;
+  const reason=document.getElementById('ret-reason').value;
+  if(!oid||!reason){alert('Выберите заказ и причину');return;}
+  const items=[];
+  document.querySelectorAll('#ret-items input[type=number]').forEach((inp,i)=>{const rq=+inp.value;if(rq>0)items.push({qty:rq,price:+inp.dataset.price});});
+  if(!items.length){alert('Укажите количество для возврата');return;}
+  const total=items.reduce((s,i)=>s+i.price*i.qty,0);
+  try{
+    const res=await sbInsert('returns',{order_id:oid,reason,status:'pending',total});
+    const ret=Array.isArray(res)?res[0]:res;
+    if(ret) returns.unshift(ret);
+    closeModal('modal-return');renderReturns();updateBadges();showToast('✓ Возврат оформлен');
+  }catch(e){showToast('Ошибка: '+e.message,'red');}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// BARCODES + CAMERA SCANNER
+// ══════════════════════════════════════════════════════════════════
+async function renderBarcodes(){
+  const q=(document.getElementById('bc-search').value||'').toLowerCase();
+  let url=SUPA_URL+'/rest/v1/products?select=id,name,sku,brand,price_sell,qty,barcode&order=name&limit=60';
+  if(q) url+=`&or=(name.ilike.%25${encodeURIComponent(q)}%25,sku.ilike.%25${encodeURIComponent(q)}%25)`;
+  const data=await fetch(url,{headers:_h}).then(r=>r.json()).catch(()=>[]);
+  document.getElementById('bc-grid').innerHTML=(data||[]).map(p=>`
+    <div class="bc-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:13px;color:#E2E8F0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</div>
+          <div style="font-size:11px;color:#64748B;margin-top:2px">Арт: ${esc(p.sku||'—')} · ${fmtN(p.price_sell)} ₸ · ${p.qty} шт</div>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:8px;padding:10px 8px;text-align:center;margin-bottom:10px;min-height:80px;display:flex;align-items:center;justify-content:center" id="bcimg-${p.id}">
+        ${p.barcode
+          ? `<svg id="bcsvg-${p.id}"></svg>`
+          : `<div style="color:#94A3B8;font-size:11px;line-height:1.5">Штрихкод не задан<br><span style="font-size:10px">Нажмите "Задать"</span></div>`
+        }
+      </div>
+      <div style="display:flex;gap:6px">
+        ${p.barcode
+          ? `<button class="btn btn-primary btn-sm" style="flex:1" onclick="printBarcode(${p.id})">🖨️ Печать ценника</button>`
+          : ''
+        }
+        <button class="btn btn-secondary btn-sm" style="flex:${p.barcode?'0':'1'}" onclick="openEditBarcode(${p.id},'${esc(p.name).replace(/'/g,"\'")}','${esc(p.barcode||'').replace(/'/g,"\'")}')">
+          ${p.barcode?'✏️':'+ Задать штрихкод'}
+        </button>
+      </div>
+    </div>`).join('') || '<div style="padding:40px;text-align:center;color:#475569">Товары не найдены</div>';
+  // Render barcodes after DOM update
+  setTimeout(()=>(data||[]).forEach(p=>{if(p.barcode)renderBcEl('bcsvg-'+p.id,p.barcode,true);}),80);
+}
+
+function renderBcEl(id,val,small){
+  const el=document.getElementById(id);if(!el||!val)return;
+  try{JsBarcode(el,val,{format:'EAN13',width:small?1.5:2,height:small?40:60,displayValue:true,fontSize:small?10:12,background:'#ffffff',lineColor:'#000000',margin:4});}
+  catch(e){try{JsBarcode(el,val,{format:'CODE128',width:small?1.5:2,height:small?40:60,displayValue:true,fontSize:small?10:12,background:'#ffffff',lineColor:'#000000',margin:4});}catch(e2){}}
+}
+
+function openEditBarcode(id,name,bc){
+  editBarcodeId=id;
+  document.getElementById('bc-product-name').textContent=name;
+  document.getElementById('bc-value').value=bc||'';
+  document.getElementById('bc-preview').innerHTML='';
+  if(bc){document.getElementById('bc-preview').innerHTML=`<div style="background:#fff;padding:8px;border-radius:6px"><svg id="bc-prev-svg"></svg></div>`;setTimeout(()=>renderBcEl('bc-prev-svg',bc,false),50);}
+  openModal('modal-barcode');
+}
+function previewBarcode(){
+  const val=document.getElementById('bc-value').value;const prev=document.getElementById('bc-preview');
+  if(!val){prev.innerHTML='';return;}
+  prev.innerHTML=`<div style="background:#fff;padding:8px;border-radius:6px"><svg id="bc-prev-svg"></svg></div>`;
+  setTimeout(()=>renderBcEl('bc-prev-svg',val,false),30);
+}
+async function saveBarcodeEdit(){
+  const val=document.getElementById('bc-value').value.trim();
+  await sbUpdate('products',editBarcodeId,{barcode:val});
+  closeModal('modal-barcode');renderBarcodes();showToast('✓ Штрихкод сохранён');
+}
+function printBarcode(id){
+  fetch(SUPA_URL+'/rest/v1/products?id=eq.'+id,{headers:_h}).then(r=>r.json()).then(data=>{
+    const p=data[0];if(!p||!p.barcode)return;
+    // Render barcode to SVG
+    const svgEl=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svgEl.id='bc-print-tmp';document.body.appendChild(svgEl);
+    try{JsBarcode(svgEl,p.barcode,{format:'EAN13',width:2,height:60,displayValue:true,fontSize:12,background:'#fff',lineColor:'#000',margin:6});}
+    catch(e){try{JsBarcode(svgEl,p.barcode,{format:'CODE128',width:2,height:60,displayValue:true,fontSize:12,background:'#fff',lineColor:'#000',margin:6});}catch(e2){}}
+    const svgHtml=svgEl.outerHTML;document.body.removeChild(svgEl);
+    // Print multiple labels per page (4 labels)
+    const label=`<div class="lbl">
+      <div class="shop">АВТОЗАПЧАСТИ</div>
+      <div class="name">${esc(p.name)}</div>
+      ${p.sku?`<div class="sku">Арт: ${esc(p.sku)}</div>`:''}
+      ${svgHtml}
+      <div class="price">${fmtN(p.price_sell)} ₸</div>
+    </div>`;
+    printViaIframe(`<html><head><title>Ценник</title><style>
+      @page{margin:5mm}
+      body{font-family:Arial,sans-serif;margin:0;padding:4px;background:#fff}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+      .lbl{border:1px solid #999;padding:8px 6px;text-align:center;break-inside:avoid}
+      .shop{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#666;margin-bottom:2px}
+      .name{font-size:10px;font-weight:bold;color:#000;margin-bottom:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+      .sku{font-size:9px;color:#666;margin-bottom:3px}
+      .price{font-size:14px;font-weight:bold;color:#000;margin-top:3px}
+      svg{max-width:100%}
+    </style></head><body>
+    <div class="grid">${label}${label}${label}${label}</div>
+    </body></html>`);
+  });
+}
+
+// Camera scanner
+async function toggleScanMode(){
+  if(scanMode){stopCamera();return;}
+  const banner=document.getElementById('scan-banner');
+  const btn=document.getElementById('scan-toggle-btn');
+  banner.style.display='block';
+  btn.textContent='🔴 Остановить';
+  btn.className='btn btn-danger';
+  scanMode=true;
+  document.getElementById('scan-result-box').innerHTML='';
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});
+    scanStream=stream;
+    const video=document.getElementById('scan-video');
+    video.srcObject=stream;
+    await video.play();
+    startZxingScan(video);
+  }catch(e){
+    stopCamera();
+    if(e.name==='NotAllowedError') showToast('Нет разрешения на камеру. Разрешите доступ в настройках браузера.','red');
+    else showToast('Камера недоступна: '+e.message,'red');
+  }
+}
+
+function startZxingScan(video){
+  // Use ZXing if loaded, otherwise use BarcodeDetector, otherwise canvas pixel scan
+  if(window.ZXing){
+    const hints=new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.CODE_128,ZXing.BarcodeFormat.CODE_39,ZXing.BarcodeFormat.QR_CODE]);
+    const reader=new ZXing.BrowserMultiFormatReader(hints);
+    reader.decodeFromVideoElement(video).then(result=>{
+      if(result&&scanMode) handleScannedCode(result.getText());
+    }).catch(()=>{});
+    window._zxingReader=reader;
+    return;
+  }
+  if('BarcodeDetector' in window){
+    const detector=new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','qr_code']});
+    const scan=async()=>{
+      if(!scanMode||!video.videoWidth)return;
+      try{
+        const barcodes=await detector.detect(video);
+        if(barcodes.length>0){await handleScannedCode(barcodes[0].rawValue);return;}
+      }catch(e){}
+      if(scanMode) setTimeout(()=>requestAnimationFrame(scan),200);
+    };
+    video.addEventListener('play',()=>setTimeout(scan,500),{once:true});
+    if(!video.paused) setTimeout(scan,500);
+    return;
+  }
+  // Canvas fallback with manual frame analysis
+  document.getElementById('scan-result-box').innerHTML=`
+    <div style="margin-top:10px;background:#1A2232;border-radius:8px;padding:12px;text-align:left">
+      <div style="color:#F59E0B;font-size:13px;font-weight:600;margin-bottom:6px">📱 Введите код вручную</div>
+      <div style="color:#64748B;font-size:12px;margin-bottom:8px">Камера открыта, но автосканирование недоступно в этом браузере. Попробуйте Chrome.</div>
+      <input class="input" id="manual-barcode" placeholder="Введите штрихкод..." style="margin-bottom:8px">
+      <button class="btn btn-primary" style="width:100%" onclick="handleScannedCode(document.getElementById('manual-barcode').value)">Найти товар</button>
+    </div>`;
+}
+function stopCamera(){
+  if(window._zxingReader){try{window._zxingReader.reset();}catch(e){}window._zxingReader=null;}
+  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}
+  scanMode=false;
+  document.getElementById('scan-banner').style.display='none';
+  document.getElementById('scan-result-box').innerHTML='';
+  const btn=document.getElementById('scan-toggle-btn');
+  btn.textContent='📷 Сканировать штрихкод';
+  btn.className='btn btn-success';
+}
+async function handleScannedCode(code){
+  stopCamera();
+  const data=await fetch(SUPA_URL+`/rest/v1/products?barcode=eq.${encodeURIComponent(code)}`,{headers:_h}).then(r=>r.json()).catch(()=>[]);
+  const rb=document.getElementById('scan-result-box');
+  const banner=document.getElementById('scan-banner');
+  banner.style.display='block';
+  if(data&&data.length>0){
+    const p=data[0];
+    rb.innerHTML=`
+      <div style="background:#1A2232;border-radius:12px;padding:16px 18px;text-align:left;border:1px solid rgba(16,185,129,.3)">
+        <div style="font-size:12px;color:#10B981;font-weight:700;margin-bottom:6px">✅ ТОВАР НАЙДЕН</div>
+        <div style="font-size:16px;font-weight:700;color:#F1F5F9;margin-bottom:4px">${esc(p.name)}</div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:10px">Арт: ${esc(p.sku||'—')} · ${esc(p.brand||'')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:#161B27;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Цена</div>
+            <div style="font-size:18px;font-weight:800;color:#F97316">${fmtN(p.price_sell)} ₸</div>
+          </div>
+          <div style="background:#161B27;border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Остаток</div>
+            <div style="font-size:18px;font-weight:800;color:${p.qty<=p.qty_min?'#EF4444':'#10B981'}">${p.qty} шт</div>
+          </div>
+        </div>
+        <button class="btn btn-success" style="width:100%;margin-top:12px" onclick="toggleScanMode()">📷 Сканировать ещё</button>
+      </div>`;
+  } else {
+    rb.innerHTML=`
+      <div style="background:#1A2232;border-radius:12px;padding:16px 18px;text-align:center;border:1px solid rgba(239,68,68,.3)">
+        <div style="font-size:32px;margin-bottom:8px">❌</div>
+        <div style="color:#EF4444;font-size:14px;font-weight:600">Товар не найден</div>
+        <div style="color:#64748B;font-size:12px;margin-top:4px">Штрихкод: ${esc(code)}</div>
+        <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="toggleScanMode()">📷 Сканировать ещё</button>
+      </div>`;
+  }
+}
+
+// Keyboard scanner fallback
+let kbBuffer='';
+document.addEventListener('keydown',e=>{
+  if(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA') return;
+  if(e.key==='Enter'){if(kbBuffer.length>3)handleScannedCode(kbBuffer);kbBuffer='';}
+  else if(e.key.length===1) kbBuffer+=e.key;
+});
+
+// ══════════════════════════════════════════════════════════════════
+// PROCUREMENT (from ordered_items)
+// ══════════════════════════════════════════════════════════════════
+function renderProcurement(){
+  const pending=orderedItems.filter(o=>o.status==='pending');
+  if(!pending.length){
+    document.getElementById('procurement-content').innerHTML=`<div style="text-align:center;padding:48px;color:#475569"><div style="font-size:36px;margin-bottom:12px">✅</div><div>Все заказы получены</div></div>`;
+    return;
+  }
+  // Group by supplier
+  const bySupplier={};
+  pending.forEach(o=>{const s=o.supplier||'Без поставщика';if(!bySupplier[s])bySupplier[s]=[];bySupplier[s].push(o);});
+  let html='';
+  Object.entries(bySupplier).forEach(([supplier,items])=>{
+    const total=items.reduce((s,i)=>s+(+i.price||0),0);
+    html+=`<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-weight:700;color:#F1F5F9">🏭 ${esc(supplier)}</div>
+        <div style="font-weight:700;color:#F97316">${fmtN(total)} ₸</div>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>Товар</th><th>Артикул</th><th>Цена</th><th>Ожидается</th><th>Ссылка</th></tr></thead><tbody>
+        ${items.map(o=>`<tr>
+          <td style="font-weight:600;color:#E2E8F0">${esc(o.name)}</td>
+          <td><span class="tag">${esc(o.sku||'—')}</span></td>
+          <td style="color:#F97316">${fmtN(o.price||0)} ₸</td>
+          <td style="color:#64748B">${o.expected_date||'—'}</td>
+          <td>${o.link?`<a href="${esc(o.link)}" target="_blank" style="color:#3B82F6;font-size:12px">🔗</a>`:'—'}</td>
+        </tr>`).join('')}
+      </tbody></table></div>
+    </div>`;
+  });
+  document.getElementById('procurement-content').innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ANALYTICS
+// ══════════════════════════════════════════════════════════════════
+async function renderAnalytics(){
+  const completed=orders.filter(o=>o.status==='completed');
+  const revenue=completed.reduce((s,o)=>s+(+o.total),0);
+  const retTotal=returns.filter(r=>r.status==='approved').reduce((s,r)=>s+(+r.total),0);
+  const avg=completed.length?Math.round(revenue/completed.length):0;
+
+  // Top products this month
+  const now=new Date();
+  const monthStart=new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10);
+  const monthOrders=completed.filter(o=>(o.created_at||'')>=monthStart);
+  const productSales={};
+  monthOrders.forEach(o=>(o.items||[]).forEach(item=>{
+    if(!productSales[item.product_id])productSales[item.product_id]={qty:0,total:0};
+    productSales[item.product_id].qty+=item.qty;
+    productSales[item.product_id].total+=item.qty*item.price;
+  }));
+  const topIds=Object.entries(productSales).sort((a,b)=>b[1].qty-a[1].qty).slice(0,10);
+
+  // Load product names for top
+  let topHtml='<div style="color:#64748B;font-size:13px">Нет продаж в этом месяце</div>';
+  if(topIds.length){
+    const ids=topIds.map(([id])=>id);
+    const prods=await fetch(SUPA_URL+`/rest/v1/products?id=in.(${ids.join(',')})&select=id,name,sku`,{headers:_h}).then(r=>r.json()).catch(()=>[]);
+    const maxQ=topIds[0][1].qty;
+    topHtml=topIds.map(([id,s],i)=>{
+      const p=prods.find(x=>String(x.id)===String(id));
+      const pct=Math.round(s.qty/maxQ*100);
+      const colors=['#F97316','#3B82F6','#10B981','#8B5CF6','#F59E0B','#EF4444','#06B6D4','#84CC16','#A78BFA','#FB7185'];
+      return `<div class="bar-row">
+        <div class="bar-lbl">${esc(p?.name||'Товар #'+id)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${colors[i]||'#64748B'}"></div></div>
+        <div class="bar-val">${s.qty} шт · ${fmtN(s.total)} ₸</div>
+      </div>`;
+    }).join('');
+  }
+
+  const days=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const vals=[12400,18600,9800,22100,31500,14200,8900];
+  const maxV=Math.max(...vals);
+
+  document.getElementById('page-analytics').innerHTML=`
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-lbl">Выручка всего</div><div class="stat-val">${fmtN(revenue)} ₸</div></div>
+      <div class="stat-card"><div class="stat-lbl">Прибыль (с возвратами)</div><div class="stat-val">${fmtN(Math.round((revenue-retTotal)*0.38))} ₸</div></div>
+      <div class="stat-card"><div class="stat-lbl">Средний чек</div><div class="stat-val">${fmtN(avg)} ₸</div></div>
+      <div class="stat-card"><div class="stat-lbl">Возвращено</div><div class="stat-val" style="color:#EF4444">−${fmtN(retTotal)} ₸</div></div>
+    </div>
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="card"><div class="card-title">📦 Топ-10 продаж за месяц</div>${topHtml}</div>
+      <div class="card"><div class="card-title">Продажи по дням недели</div>
+        <div style="display:flex;align-items:flex-end;gap:5px;height:110px">
+          ${vals.map((v,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:100%;height:${Math.round(v/maxV*96)}px;background:${i===4?'#F97316':'#2D3748'};border-radius:4px 4px 0 0"></div>
+            <div style="font-size:10px;color:#64748B">${days[i]}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">⚠️ Заканчивается</div>
+        <div id="an-low"></div>
+      </div>
+      <div class="card"><div class="card-title">⭐ Статистика клиентов</div>
+        <div style="font-size:13px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748B">Всего клиентов</span><span style="font-weight:700;color:#F1F5F9">${customers.length}</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748B">⭐ Постоянных (5+)</span><span style="font-weight:700;color:#FBBF24">${customers.filter(c=>(c.order_count||0)>=5).length}</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#64748B">Общая выручка</span><span style="font-weight:700;color:#F97316">${fmtN(customers.reduce((s,c)=>s+(+c.total_spent||0),0))} ₸</span></div>
+        </div>
+      </div>
+    </div>`;
+
+  // Load low stock
+  const lowData=await fetch(SUPA_URL+'/rest/v1/products?qty=lte.qty_min&select=name,qty,qty_min&limit=10',{headers:_h}).then(r=>r.json()).catch(()=>[]);
+  const anLow=document.getElementById('an-low');
+  if(anLow) anLow.innerHTML=lowData&&lowData.length
+    ?lowData.map(p=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1E2A3A;font-size:13px"><span style="color:#E2E8F0">${esc(p.name.split(' ').slice(0,3).join(' '))}</span><span class="red">${p.qty}/${p.qty_min}</span></div>`).join('')
+    :'<div style="color:#10B981;font-size:13px">✅ Все товары в норме</div>';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
+async function init(){
+  document.getElementById('top-date').textContent=new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+  try{
+    await loadAllData();
+    setSyncStatus(true);
+    renderDashboard();
+    updateBadges();
+    // Poll every 60s
+    setInterval(async()=>{
+      try{await loadAllData();updateBadges();setSyncStatus(true);}
+      catch(e){setSyncStatus(false);}
+    },60000);
+  }catch(e){
+    setSyncStatus(false);
+    document.getElementById('page-dashboard').innerHTML=`<div style="text-align:center;padding:48px"><div style="font-size:36px;margin-bottom:12px">⚠️</div><div style="color:#EF4444;font-size:14px;margin-bottom:16px">Нет подключения к базе данных</div><div style="color:#64748B;font-size:12px">${esc(e.message)}</div><button onclick="location.reload()" style="background:#F97316;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:600;margin-top:16px">🔄 Повторить</button></div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
